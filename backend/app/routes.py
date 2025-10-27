@@ -1,10 +1,5 @@
-# Before
-@app.route('/')
-def home():
-    return 'Hello'
-
-# After
+from app import app
 
 @app.route('/')
 def home():
-    return 'Hello'
+    return "Hello, Farmart Backend!"
