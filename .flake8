@@ -1,0 +1,14 @@
+[flake8]
+# Ignore E302 (expected 2 blank lines) for now
+ignore = E302
+
+# Maximum allowed line length
+max-line-length = 120
+
+# Exclude virtualenvs, migrations, and pycache
+exclude =
+    .git,
+    __pycache__,
+    env/,
+    venv/,
+    migrations/
