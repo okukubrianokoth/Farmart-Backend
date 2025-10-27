@@ -1,0 +1,4 @@
+Flask==2.3.5
+pytest==7.4.0
+flake8==6.1.0
+psycopg2-binary==2.9.7
