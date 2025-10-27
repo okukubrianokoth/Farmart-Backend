@@ -30,7 +30,8 @@ jobs:
       FLASK_ENV: development
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -41,6 +42,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
+          pip install pytest flake8
 
       - name: Wait for Postgres
         run: |
@@ -52,12 +54,12 @@ jobs:
       - name: Run tests
         run: |
           cd backend
-          pytest -v --tb=short
+          pytest tests/ -v --tb=short
 
-      - name: Lint code (optional)
+      - name: Lint code
         run: |
-          pip install flake8
-          flake8 backend/app backend/tests
+          cd backend
+          flake8 app tests
 
       - name: Notify success
         if: success()
