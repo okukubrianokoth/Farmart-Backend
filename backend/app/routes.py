@@ -1,7 +1,10 @@
-from flask import Blueprint
+# Before
+@app.route('/')
+def home():
+    return 'Hello'
 
-main = Blueprint('main', __name__)
+# After
 
-@main.route('/ping')
-def ping():
-    return {"message": "pong"}
+@app.route('/')
+def home():
+    return 'Hello'

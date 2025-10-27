@@ -1,8 +1,10 @@
+# Before
 from flask import Flask
-from .routes import main
+from flask_sqlalchemy import SQLAlchemy
 
-def create_app():
-    app = Flask(__name__)
-    app.config['SECRET_KEY'] = 'supersecretkey'
-    app.register_blueprint(main)
-    return app
+# After
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+
+# Make sure there are 2 blank lines above class or function definitions
