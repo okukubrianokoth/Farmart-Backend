@@ -110,7 +110,8 @@ def initiate_mpesa_payment():
             'Content-Type': 'application/json'
         }
         
-        print(f"🚀 Sending STK Push to M-Pesa Sandbox...")
+        print("🚀 Sending STK Push to M-Pesa Sandbox...")
+
         print(f"📦 Request data: {json.dumps(stk_push_data, indent=2)}")
         
         response = requests.post(
