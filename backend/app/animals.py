@@ -76,7 +76,7 @@ def create_animal():
         db.session.add(animal)
         db.session.commit()
 
-         return jsonify({
+        return jsonify({
             'message': 'Animal added successfully',
             'animal': animal.to_dict()
         }), 201
@@ -107,6 +107,8 @@ def update_animal(animal_id):
 
     db.session.commit()
     
+    return jsonify({'message': 'Animal updated successfully'})
+
     
     
     
