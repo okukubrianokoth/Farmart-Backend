@@ -26,7 +26,7 @@ def create_app(config_name='default'):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    bcrypt.init app(app)
+    bcrypt.init_app(app)
 
     #Import models 
     from app import models
