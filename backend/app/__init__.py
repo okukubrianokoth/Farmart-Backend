@@ -1,9 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-
-# Initialize app and database
-app = Flask(__name__)
-db = SQLAlchemy(app)
-
-# Import routes after app is created
-from app import routes
+from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
+from flask_cors import CORS
+from flask_bcrypt import Bcrypt
