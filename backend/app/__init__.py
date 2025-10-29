@@ -14,3 +14,9 @@ bcrypt = Bcrypt()
 
 def create_app(config_name='default'):
     app = Flask(__name__)
+
+    # Import config
+    from config import config
+    app.config.from_object(config[config_name])
+
+   
