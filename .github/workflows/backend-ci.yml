@@ -2,12 +2,12 @@ name: Flask Backend CI/CD Pipeline
 
 on:
   push:
-    branches: [main, development]
+    branches: [main, development, feature/*]
   pull_request:
     branches: [main, development]
 
 jobs:
-  build-test:
+  build-test-deploy:
     runs-on: ubuntu-latest
 
     services:
@@ -63,4 +63,10 @@ jobs:
 
       - name: Notify success
         if: success()
-        run: echo "CI pipeline completed successfully!"
+        run: echo "✅ CI pipeline completed successfully!"
+
+      - name: Deploy to Render
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "🚀 Deploying to Render..."
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
