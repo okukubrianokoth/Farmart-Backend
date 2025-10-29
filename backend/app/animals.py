@@ -25,3 +25,21 @@ def get_animals():
         query = query.filter(Animal.age <= int(max_age))
     
     animals = query.all()
+
+    return jsonify([{
+        'id': animal.id,
+        'name': animal.name,
+        'animal_type': animal.animal_type.value,
+        'breed': animal.breed,
+        'age': animal.age,
+        'price': animal.price,
+        'weight': animal.weight,
+        'description': animal.description,
+        'image_url': animal.image_url,
+        'is_available': animal.is_available,
+        'farmer': {
+            'id': animal.farmer.id,
+            'first_name': animal.farmer.first_name,
+            'last_name': animal.farmer.last_name
+        }
+    } for animal in animals])
