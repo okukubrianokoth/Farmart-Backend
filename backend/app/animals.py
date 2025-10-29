@@ -94,4 +94,18 @@ def update_animal(animal_id):
     if animal.farmer_id != current_user_id:
         return jsonify({'message': 'Not authorized'}), 403
     
+    data = request.get_json()
+    animal.name = data.get('name', animal.name)
+    animal.animal_type = AnimalType(data.get('animal_type', animal.animal_type.value))
+    animal.breed = data.get('breed', animal.breed)
+    animal.age = data.get('age', animal.age)
+    animal.price = data.get('price', animal.price)
+    animal.weight = data.get('weight', animal.weight)
+    animal.description = data.get('description', animal.description)
+    animal.image_url = data.get('image_url', animal.image_url)
+    animal.is_available = data.get('is_available', animal.is_available)
+    
+    
+    
+    
         
