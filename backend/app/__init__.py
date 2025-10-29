@@ -19,4 +19,7 @@ def create_app(config_name='default'):
     from config import config
     app.config.from_object(config[config_name])
 
+     #SIMPLE CORS FIX - Allow all for development
+    CORS(APP)
+
    
