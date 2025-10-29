@@ -46,3 +46,29 @@ def get_animals():
 
 @animals_bp.route('/animals', methods=['POST'])
 @jwt_required()
+def create_animal():
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get_or_404(current_user_id)
+        
+        if user.user_type != UserType.FARMER:
+            return jsonify({'message': 'Only farmers can add animals'}), 403
+        
+        data = request.get_json()
+        
+        if not data or not all(k in data for k in ['name', 'animal_type', 'breed', 'age', 'price']):
+            return jsonify({'message': 'Missing required fields'}), 400
+        
+        # Ensure new animals are available by default
+        animal = Animal(
+            name=data['name'],
+            animal_type=AnimalType(data['animal_type']),
+            breed=data['breed'],
+            age=data['age'],
+            price=data['price'],
+            weight=data.get('weight'),
+            description=data.get('description'),
+            image_url=data.get('image_url'),
+            farmer_id=current_user_id,
+            is_available=True  # This ensures new animals are available
+        )
