@@ -104,6 +104,8 @@ def update_animal(animal_id):
     animal.description = data.get('description', animal.description)
     animal.image_url = data.get('image_url', animal.image_url)
     animal.is_available = data.get('is_available', animal.is_available)
+
+    db.session.commit()
     
     
     
