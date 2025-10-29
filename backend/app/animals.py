@@ -43,3 +43,5 @@ def get_animals():
             'last_name': animal.farmer.last_name
         }
     } for animal in animals])
+
+@animals_bp.route('/animals', methods=['POST'])
