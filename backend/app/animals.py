@@ -87,4 +87,11 @@ def create_animal():
     
 @animals_bp.route('/animals/<int:animal_id>', methods=['PUT'])   
 @jwt_required()
+def update_animal(animal_id):
+    current_user_id = get_jwt_identity()
+    animal = Animal.query.get_or_404(animal_id)
+    
+    if animal.farmer_id != current_user_id:
+        return jsonify({'message': 'Not authorized'}), 403
+    
         
