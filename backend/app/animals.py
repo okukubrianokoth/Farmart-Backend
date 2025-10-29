@@ -75,3 +75,14 @@ def create_animal():
 
         db.session.add(animal)
         db.session.commit()
+
+         return jsonify({
+            'message': 'Animal added successfully',
+            'animal': animal.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Failed to add animal', 'error': str(e)}), 500
+
+        
