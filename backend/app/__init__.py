@@ -22,4 +22,10 @@ def create_app(config_name='default'):
      #SIMPLE CORS FIX - Allow all for development
     CORS(APP)
 
+    #initialize extensions with app
+    db.init_app(app)
+    migrate.init_app(app, db)
+    jwt.init_app(app)
+    bcrypt.init app(app)
+
    
