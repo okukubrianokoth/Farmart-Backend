@@ -28,4 +28,7 @@ def create_app(config_name='default'):
     jwt.init_app(app)
     bcrypt.init app(app)
 
+    #Import models 
+    from app import models
+
    
