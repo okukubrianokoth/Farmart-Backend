@@ -5,3 +5,5 @@ from app.models import Animal, AnimalType, User, UserType
 from sqlalchemy import or_
 
 animals_bp = Blueprint('animals', __name__)
+
+@animals_bp.route('/animals', methods=['GET'])
