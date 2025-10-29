@@ -45,3 +45,4 @@ def get_animals():
     } for animal in animals])
 
 @animals_bp.route('/animals', methods=['POST'])
+@jwt_required()
