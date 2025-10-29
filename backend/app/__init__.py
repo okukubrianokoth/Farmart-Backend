@@ -44,5 +44,7 @@ def create_app(config_name='default'):
     app.register_blueprint(cart_bp, url_prefix='/api')
     app.register_blueprint(payments_bp, url_prefix='/api')
 
+    return app
+
 
    
