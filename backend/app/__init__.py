@@ -31,4 +31,18 @@ def create_app(config_name='default'):
     #Import models 
     from app import models
 
+    #Register blueprints
+    from app.auth import auth_bp
+    from app.animals import animals_bp
+    from app.orders import orders_bp
+    from app.cart import cart_bp
+    from app.payments import payments_bp
+
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(animals_bp, url_prefix='/api')
+    app.register_blueprint(orders_bp, url_prefix='/api')
+    app.register_blueprint(cart_bp, url_prefix='/api')
+    app.register_blueprint(payments_bp, url_prefix='/api')
+
+
    
