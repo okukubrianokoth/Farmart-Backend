@@ -109,6 +109,8 @@ def update_animal(animal_id):
     
     return jsonify({'message': 'Animal updated successfully'})
 
+@animals_bp.route('/animals/<int:animal_id>', methods=['DELETE'])
+
     
     
     
