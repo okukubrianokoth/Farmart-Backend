@@ -86,5 +86,5 @@ def create_animal():
         return jsonify({'message': 'Failed to add animal', 'error': str(e)}), 500
     
 @animals_bp.route('/animals/<int:animal_id>', methods=['PUT'])   
-
+@jwt_required()
         
