@@ -72,3 +72,6 @@ def create_animal():
             farmer_id=current_user_id,
             is_available=True  # This ensures new animals are available
         )
+
+        db.session.add(animal)
+        db.session.commit()
