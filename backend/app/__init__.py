@@ -20,7 +20,7 @@ def create_app(config_name='default'):
     app.config.from_object(config[config_name])
 
      #SIMPLE CORS FIX - Allow all for development
-    CORS(APP)
+    CORS(app)
 
     #initialize extensions with app
     db.init_app(app)
