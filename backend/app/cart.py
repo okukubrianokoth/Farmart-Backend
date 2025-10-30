@@ -138,4 +138,9 @@ def update_cart_item(item_id):
         db.session.rollback()
         return jsonify({'message': 'Failed to update cart', 'error': str(e)}), 500
 
-
+@cart_bp.route('/cart/<int:item_id>', methods=['DELETE'])
+@jwt_required()
+def remove_from_cart(item_id):
+    try:
+        current_user_id = get_jwt_identity()
+        cart_item = CartItem.query.filter_by(id=item_id, user_id=current_user_id).first_or_404()
