@@ -64,7 +64,6 @@ def register():
         print(f"❌ Registration error: {str(e)}")
         return jsonify({'message': 'Registration failed', 'error': str(e)}), 500
     
-
 @auth_bp.route('/login', methods=['POST'])
 def login():
     try:
@@ -83,3 +82,18 @@ def login():
             )
             
             print(f"✅ User {data['email']} logged in successfully")
+
+            return jsonify({
+                'message': 'Login successful',
+                'access_token': access_token,
+                'user': user.to_dict()
+            })
+        
+        print(f"❌ Login failed for {data['email']}")
+        return jsonify({'message': 'Invalid email or password'}), 401
+        
+    except Exception as e:
+        print(f"❌ Login error: {str(e)}")
+        return jsonify({'message': 'Login failed', 'error': str(e)}), 500
+
+
