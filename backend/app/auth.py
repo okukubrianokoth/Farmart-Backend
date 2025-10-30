@@ -100,4 +100,19 @@ def login():
 def test():
     return jsonify({'message': 'Auth routes are working!'})
 
+auth_bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+            
+        return jsonify({'user': user.to_dict()})
+        
+    except Exception as e:
+        return jsonify({'message': 'Failed to fetch profile', 'error': str(e)}), 500
+
 
