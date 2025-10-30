@@ -5,3 +5,5 @@ from app.models import User, UserType
 from datetime import timedelta
 
 auth_bp = Blueprint('auth', __name__)
+
+@auth_bp.route('/register', methods=['POST'])
