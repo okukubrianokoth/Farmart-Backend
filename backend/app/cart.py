@@ -42,3 +42,7 @@ def get_cart():
             'total': total,
             'item_count': item_count
         })
+    
+    except Exception as e:
+        return jsonify({'message': 'Failed to fetch cart', 'error': str(e)}), 500
+
