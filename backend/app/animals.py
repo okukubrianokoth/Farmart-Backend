@@ -14,7 +14,7 @@ def get_animals():
     max_age = request.args.get('max_age')
 
     query = Animal.query.filter_by(is_available=True)
-    
+
     if animal_type:
         query = query.filter_by(animal_type=AnimalType(animal_type))
     if breed:
@@ -23,7 +23,7 @@ def get_animals():
         query = query.filter(Animal.age >= int(min_age))
     if max_age:
         query = query.filter(Animal.age <= int(max_age))
-    
+
     animals = query.all()
 
     return jsonify([{
@@ -50,15 +50,15 @@ def create_animal():
     try:
         current_user_id = get_jwt_identity()
         user = User.query.get_or_404(current_user_id)
-        
+
         if user.user_type != UserType.FARMER:
             return jsonify({'message': 'Only farmers can add animals'}), 403
-        
+
         data = request.get_json()
-        
+
         if not data or not all(k in data for k in ['name', 'animal_type', 'breed', 'age', 'price']):
             return jsonify({'message': 'Missing required fields'}), 400
-        
+
         # Ensure new animals are available by default
         animal = Animal(
             name=data['name'],
@@ -80,20 +80,20 @@ def create_animal():
             'message': 'Animal added successfully',
             'animal': animal.to_dict()
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': 'Failed to add animal', 'error': str(e)}), 500
-    
+
 @animals_bp.route('/animals/<int:animal_id>', methods=['PUT'])   
 @jwt_required()
 def update_animal(animal_id):
     current_user_id = get_jwt_identity()
     animal = Animal.query.get_or_404(animal_id)
-    
+
     if animal.farmer_id != current_user_id:
         return jsonify({'message': 'Not authorized'}), 403
-    
+
     data = request.get_json()
     animal.name = data.get('name', animal.name)
     animal.animal_type = AnimalType(data.get('animal_type', animal.animal_type.value))
@@ -106,7 +106,7 @@ def update_animal(animal_id):
     animal.is_available = data.get('is_available', animal.is_available)
 
     db.session.commit()
-    
+
     return jsonify({'message': 'Animal updated successfully'})
 
 @animals_bp.route('/animals/<int:animal_id>', methods=['DELETE'])
@@ -114,15 +114,11 @@ def update_animal(animal_id):
 def delete_animal(animal_id):
     current_user_id = get_jwt_identity()
     animal = Animal.query.get_or_404(animal_id)
-    
+
     if animal.farmer_id != current_user_id:
         return jsonify({'message': 'Not authorized'}), 403
-    
+
     db.session.delete(animal)
     db.session.commit()
 
     return jsonify({'message': 'Animal deleted successfully'})
-    
-    
-    
-        
