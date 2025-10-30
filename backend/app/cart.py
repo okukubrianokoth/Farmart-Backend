@@ -147,4 +147,9 @@ def remove_from_cart(item_id):
 
         db.session.delete(cart_item)
         db.session.commit()
+        return jsonify({'message': 'Item removed from cart'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Failed to remove from cart', 'error': str(e)}), 500
 
