@@ -14,7 +14,8 @@ class AnimalTestCase(unittest.TestCase):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-    
+
+   
     def test_add_animal(self):
         # Create farmer user
         farmer = User(
@@ -26,5 +27,28 @@ class AnimalTestCase(unittest.TestCase):
         farmer.set_password('password')
         db.session.add(farmer)
         db.session.commit()
+
+        # Login
+        login_response = self.client.post('/auth/login', json={
+            'email': 'farmer@test.com',
+            'password': 'password'
+        })
+        token = login_response.get_json()['access_token']
+
+        # Add animal
+        response = self.client.post('/animals', 
+            json={
+                'name': 'Test Cow',
+                'animal_type': 'cattle',
+                'breed': 'Angus',
+                'age': 24,
+                'price': 1500.00,
+                'weight': 500.00
+            },
+            headers={'Authorization': f'Bearer {token}'}
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIn('Animal added successfully', response.get_json()['message'])
 
 
