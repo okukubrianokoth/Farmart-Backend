@@ -95,5 +95,9 @@ def login():
     except Exception as e:
         print(f"❌ Login error: {str(e)}")
         return jsonify({'message': 'Login failed', 'error': str(e)}), 500
+    
+@auth_bp.route('/test', methods=['GET'])
+def test():
+    return jsonify({'message': 'Auth routes are working!'})
 
 
