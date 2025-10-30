@@ -1,54 +1,27 @@
-import unittest
-from app import create_app, db
-from app.models import User, Animal, UserType, AnimalType
+from app.models import AnimalType, Animal
 
-class AnimalTestCase(unittest.TestCase):
-    def setUp(self):
-        self.app = create_app('testing')
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        db.create_all()
-        self.client = self.app.test_client()
+def test_add_animal(client, auth_headers):
+    data = {
+        "name": "Cow A",
+        "animal_type": "cattle",
+        "breed": "Friesian",
+        "age": 3,
+        "price": 50000
+    }
+    response = client.post("/api/animals", json=data, headers=auth_headers)
+    assert response.status_code == 201
+    assert response.json["animal"]["name"] == "Cow A"
 
-    def tearDown(self):
-        db.session.remove()
-        db.drop_all()
-        self.app_context.pop()
-
-   
-    def test_add_animal(self):
-        # Create farmer user
-        farmer = User(
-            email='farmer@test.com',
-            first_name='John',
-            last_name='Doe',
-            user_type=UserType.FARMER
-        )
-        farmer.set_password('password')
-        db.session.add(farmer)
-        db.session.commit()
-
-        # Login
-        login_response = self.client.post('/auth/login', json={
-            'email': 'farmer@test.com',
-            'password': 'password'
-        })
-        token = login_response.get_json()['access_token']
-
-        # Add animal
-        response = self.client.post('/animals', 
-            json={
-                'name': 'Test Cow',
-                'animal_type': 'cattle',
-                'breed': 'Angus',
-                'age': 24,
-                'price': 1500.00,
-                'weight': 500.00
-            },
-            headers={'Authorization': f'Bearer {token}'}
-        )
-
-        self.assertEqual(response.status_code, 201)
-        self.assertIn('Animal added successfully', response.get_json()['message'])
-
-
+def test_get_animals(client, auth_headers):
+    # Add one animal
+    client.post("/api/animals", json={
+        "name": "Cow B",
+        "animal_type": "cattle",
+        "breed": "Ayrshire",
+        "age": 2,
+        "price": 40000
+    }, headers=auth_headers)
+    
+    response = client.get("/api/animals")
+    assert response.status_code == 200
+    assert len(response.json) >= 1
