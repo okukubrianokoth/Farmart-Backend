@@ -85,4 +85,7 @@ def add_to_cart():
                 animal_id=data['animal_id'],
                 quantity=quantity
             )
+            db.session.add(cart_item)
+        
+        db.session.commit()
 
