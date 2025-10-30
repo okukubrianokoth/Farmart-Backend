@@ -45,4 +45,44 @@ def get_cart():
     
     except Exception as e:
         return jsonify({'message': 'Failed to fetch cart', 'error': str(e)}), 500
+    
+
+@cart_bp.route('/cart', methods=['POST'])
+@jwt_required()
+def add_to_cart():
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        if not data or 'animal_id' not in data:
+            return jsonify({'message': 'Animal ID is required'}), 400
+        
+        animal = Animal.query.get_or_404(data['animal_id'])
+        
+        if not animal.is_available:
+            return jsonify({'message': 'Animal is not available for purchase'}), 400
+        
+        # Check if user is trying to buy their own animal
+        if animal.farmer_id == current_user_id:
+            return jsonify({'message': 'You cannot buy your own animal'}), 400
+        
+        quantity = data.get('quantity', 1)
+        
+        if quantity < 1:
+            return jsonify({'message': 'Quantity must be at least 1'}), 400
+        
+        # Check if item already in cart
+        cart_item = CartItem.query.filter_by(
+            user_id=current_user_id, 
+            animal_id=data['animal_id']
+        ).first()
+        
+        if cart_item:
+            cart_item.quantity += quantity
+        else:
+            cart_item = CartItem(
+                user_id=current_user_id,
+                animal_id=data['animal_id'],
+                quantity=quantity
+            )
 
