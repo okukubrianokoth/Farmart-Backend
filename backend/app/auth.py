@@ -52,3 +52,14 @@ def register():
         )
         
         print(f"✅ User {data['email']} registered successfully")
+
+        return jsonify({
+            'message': 'User registered successfully',
+            'access_token': access_token,
+            'user': user.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Registration error: {str(e)}")
+        return jsonify({'message': 'Registration failed', 'error': str(e)}), 500
