@@ -1,5 +1,6 @@
 from app import app
 
-@app.route('/')
+
+@app.route("/")
 def home():
     return "Hello, Farmart Backend!"

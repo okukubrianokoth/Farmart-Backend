@@ -19,19 +19,19 @@ def create_app(config_name='default'):
     from config import config
     app.config.from_object(config[config_name])
 
-     #SIMPLE CORS FIX - Allow all for development
+    # SIMPLE CORS FIX - Allow all for development
     CORS(app)
 
-    #initialize extensions with app
+    # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     bcrypt.init_app(app)
 
-    #Import models 
+    # Import models
     from app import models
 
-    #Register blueprints
+    # Register blueprints
     from app.auth import auth_bp
     from app.animals import animals_bp
     from app.orders import orders_bp
@@ -45,6 +45,3 @@ def create_app(config_name='default'):
     app.register_blueprint(payments_bp, url_prefix='/api')
 
     return app
-
-
-   
