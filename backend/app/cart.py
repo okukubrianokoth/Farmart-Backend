@@ -144,3 +144,7 @@ def remove_from_cart(item_id):
     try:
         current_user_id = get_jwt_identity()
         cart_item = CartItem.query.filter_by(id=item_id, user_id=current_user_id).first_or_404()
+
+        db.session.delete(cart_item)
+        db.session.commit()
+
