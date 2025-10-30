@@ -63,3 +63,23 @@ def register():
         db.session.rollback()
         print(f"❌ Registration error: {str(e)}")
         return jsonify({'message': 'Registration failed', 'error': str(e)}), 500
+    
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        print("🔧 Login attempt for:", data.get('email'))
+        
+        if not data or not data.get('email') or not data.get('password'):
+            return jsonify({'message': 'Email and password are required'}), 400
+        
+        user = User.query.filter_by(email=data['email']).first()
+        
+        if user and user.check_password(data['password']):
+            access_token = create_access_token(
+                identity=user.id,
+                expires_delta=timedelta(days=7)
+            )
+            
+            print(f"✅ User {data['email']} logged in successfully")
