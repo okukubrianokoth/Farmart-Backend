@@ -89,3 +89,17 @@ def add_to_cart():
         
         db.session.commit()
 
+        return jsonify({
+            'message': 'Added to cart successfully',
+            'cart_item': {
+                'id': cart_item.id,
+                'animal_id': cart_item.animal_id,
+                'quantity': cart_item.quantity,
+                'added_at': cart_item.added_at.isoformat() if cart_item.added_at else None
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Failed to add to cart', 'error': str(e)}), 500
+
