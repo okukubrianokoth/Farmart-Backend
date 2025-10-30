@@ -9,3 +9,8 @@ class AnimalTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
         self.client = self.app.test_client()
+
+def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
