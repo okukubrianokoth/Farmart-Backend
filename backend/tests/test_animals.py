@@ -1,3 +1,3 @@
-# In backend/tests/test_animals.py
-def test_placeholder():
-    assert True  # Add a comment or change spacing
+import unittest
+from app import create_app, db
+from app.models import User, Animal, UserType, AnimalType
