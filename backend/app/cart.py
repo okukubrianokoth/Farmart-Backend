@@ -126,3 +126,16 @@ def update_cart_item(item_id):
         cart_item.quantity = quantity
         db.session.commit()
 
+        return jsonify({
+            'message': 'Cart updated successfully',
+            'cart_item': {
+                'id': cart_item.id,
+                'quantity': cart_item.quantity
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Failed to update cart', 'error': str(e)}), 500
+
+
