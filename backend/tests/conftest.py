@@ -27,3 +27,16 @@ def farmer_user(app):
     db.session.add(user)
     db.session.commit()
     return user
+
+@pytest.fixture
+def regular_user(app):
+    user = User(
+        email='user@test.com',
+        first_name='User',
+        last_name='Test',
+        user_type=UserType.USER
+    )
+    user.set_password('password')
+    db.session.add(user)
+    db.session.commit()
+    return user
