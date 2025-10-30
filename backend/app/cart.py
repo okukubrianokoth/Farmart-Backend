@@ -161,3 +161,7 @@ def clear_cart():
         
         CartItem.query.filter_by(user_id=current_user_id).delete()
 
+        db.session.commit()
+
+        
+
