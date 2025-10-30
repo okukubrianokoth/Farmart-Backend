@@ -153,3 +153,11 @@ def remove_from_cart(item_id):
         db.session.rollback()
         return jsonify({'message': 'Failed to remove from cart', 'error': str(e)}), 500
 
+@cart_bp.route('/cart/clear', methods=['DELETE'])
+@jwt_required()
+def clear_cart():
+    try:
+        current_user_id = get_jwt_identity()
+        
+        CartItem.query.filter_by(user_id=current_user_id).delete()
+
