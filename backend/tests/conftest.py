@@ -14,3 +14,16 @@ def app():
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+@pytest.fixture
+def farmer_user(app):
+    user = User(
+        email='farmer@test.com',
+        first_name='Farmer',
+        last_name='Test',
+        user_type=UserType.FARMER
+    )
+    user.set_password('password')
+    db.session.add(user)
+    db.session.commit()
+    return user
