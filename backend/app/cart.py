@@ -163,5 +163,12 @@ def clear_cart():
 
         db.session.commit()
 
+        return jsonify({'message': 'Cart cleared successfully'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Failed to clear cart', 'error': str(e)}), 500
+    
+
         
 
