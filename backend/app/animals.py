@@ -118,6 +118,9 @@ def delete_animal(animal_id):
     if animal.farmer_id != current_user_id:
         return jsonify({'message': 'Not authorized'}), 403
     
+    db.session.delete(animal)
+    db.session.commit()
+    
     
     
         
