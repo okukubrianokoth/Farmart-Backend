@@ -102,4 +102,27 @@ def add_to_cart():
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': 'Failed to add to cart', 'error': str(e)}), 500
+    
+
+@cart_bp.route('/cart/<int:item_id>', methods=['PUT'])
+@jwt_required()
+def update_cart_item(item_id):
+    try:
+        current_user_id = get_jwt_identity()
+        cart_item = CartItem.query.filter_by(id=item_id, user_id=current_user_id).first_or_404()
+        
+        data = request.get_json()
+        quantity = data.get('quantity')
+        
+        if quantity is None:
+            return jsonify({'message': 'Quantity is required'}), 400
+        
+        if quantity < 1:
+            return jsonify({'message': 'Quantity must be at least 1'}), 400
+        
+        if not cart_item.animal.is_available:
+            return jsonify({'message': 'Animal is no longer available'}), 400
+        
+        cart_item.quantity = quantity
+        db.session.commit()
 
