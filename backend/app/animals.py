@@ -120,6 +120,8 @@ def delete_animal(animal_id):
     
     db.session.delete(animal)
     db.session.commit()
+
+    return jsonify({'message': 'Animal deleted successfully'})
     
     
     
