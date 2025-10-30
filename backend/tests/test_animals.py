@@ -10,7 +10,21 @@ class AnimalTestCase(unittest.TestCase):
         db.create_all()
         self.client = self.app.test_client()
 
-def tearDown(self):
+    def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
+    
+    def test_add_animal(self):
+        # Create farmer user
+        farmer = User(
+            email='farmer@test.com',
+            first_name='John',
+            last_name='Doe',
+            user_type=UserType.FARMER
+        )
+        farmer.set_password('password')
+        db.session.add(farmer)
+        db.session.commit()
+
+
