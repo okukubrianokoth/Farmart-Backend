@@ -156,7 +156,9 @@ def mpesa_callback():
 
         order = None
         if checkout_request_id:
-            order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
+            order = Order.query.filter_by(
+                payment_intent_id=checkout_request_id
+            ).first()
 
         if result_code == 0:
             # successful
@@ -185,7 +187,9 @@ def check_payment_status(checkout_request_id):
     """Check M-Pesa payment status with defensive handling and DB-first lookup."""
     try:
         # 1) If we already recorded payment status in DB, return it — avoids hitting Safaricom repeatedly.
-        order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
+        order = Order.query.filter_by(
+            payment_intent_id=checkout_request_id
+        ).first()
         if order and order.payment_status in ('completed', 'failed'):
             return jsonify({
                 'checkout_request_id': checkout_request_id,
@@ -241,9 +245,9 @@ def check_payment_status(checkout_request_id):
 
         # If Safaricom returns a result, update DB if possible
         result_code = (
-            resp_json.get('ResultCode')
-            or resp_json.get('resultCode')
-            or resp_json.get('ResponseCode')  # try various keys
+            resp_json.get('ResultCode') or
+            resp_json.get('resultCode') or
+            resp_json.get('ResponseCode')  # try various keys
         )
 
         # Save whatever we can into DB if there is an order
