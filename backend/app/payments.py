@@ -20,9 +20,7 @@ MPESA_SHORTCODE = '174379'
 MPESA_PASSKEY = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
 
 # CALLBACK URL — must be publicly reachable (ngrok used here)
-MPESA_CALLBACK_URL = (
-    "https://coral-salamanderlike-ilona.ngrok-free.dev/api/payments/mpesa/callback"
-)
+MPESA_CALLBACK_URL = "https://coral-salamanderlike-ilona.ngrok-free.dev/api/payments/mpesa/callback"
 
 
 def generate_mpesa_password():
@@ -156,9 +154,7 @@ def mpesa_callback():
 
         order = None
         if checkout_request_id:
-            order = Order.query.filter_by(
-                payment_intent_id=checkout_request_id
-            ).first()
+            order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
 
         if result_code == 0:
             # successful
@@ -187,9 +183,7 @@ def check_payment_status(checkout_request_id):
     """Check M-Pesa payment status with defensive handling and DB-first lookup."""
     try:
         # 1) If we already recorded payment status in DB, return it — avoids hitting Safaricom repeatedly.
-        order = Order.query.filter_by(
-            payment_intent_id=checkout_request_id
-        ).first()
+        order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
         if order and order.payment_status in ('completed', 'failed'):
             return jsonify({
                 'checkout_request_id': checkout_request_id,
@@ -245,9 +239,9 @@ def check_payment_status(checkout_request_id):
 
         # If Safaricom returns a result, update DB if possible
         result_code = (
-            resp_json.get('ResultCode') or
-            resp_json.get('resultCode') or
-            resp_json.get('ResponseCode')  # try various keys
+            resp_json.get('ResultCode')
+            or resp_json.get('resultCode')
+            or resp_json.get('ResponseCode')
         )
 
         # Save whatever we can into DB if there is an order
