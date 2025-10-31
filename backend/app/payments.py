@@ -238,16 +238,14 @@ def check_payment_status(checkout_request_id):
             return jsonify({'message': 'Invalid JSON response from M-Pesa'}), 502
 
         # If Safaricom returns a result, update DB if possible
-        result_code = (
-            resp_json.get('ResultCode')
-            or resp_json.get('resultCode')
-            or resp_json.get('ResponseCode')
-        )
+        result_code = (resp_json.get('ResultCode') or
+                       resp_json.get('resultCode') or
+                       resp_json.get('ResponseCode'))
 
         # Save whatever we can into DB if there is an order
         if order:
             # Map result_code to internal state
-            if str(result_code) in ('0', '0'):  # success
+            if str(result_code) == '0':  # success
                 order.payment_status = 'completed'
                 order.status = OrderStatus.CONFIRMED
                 db.session.commit()
