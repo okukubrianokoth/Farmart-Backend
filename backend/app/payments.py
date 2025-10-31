@@ -2,257 +2,266 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import Order, OrderStatus, User
+from app.utils import get_mpesa_token
 import requests
 import base64
 from datetime import datetime
 import json
+import time
 
-payments_bp = Blueprint("payments", __name__)
+payments_bp = Blueprint('payments', __name__)
 
-# M-PESA EXPRESS SANDBOX CREDENTIALS
-MPESA_CONSUMER_KEY = "ELffJ1IIfOR2LrBHXG7UH3xfCzQylGV1ucU0glmP9BBhZ8LR"
-MPESA_CONSUMER_SECRET = (
-    "87BCDfPwRbllkz1ITk2CiNGk3IaMjUcAryhQoFEsqZADz7q2wXA4Tb4sXIO8vbQA"
-)
-MPESA_SHORTCODE = "174379"
-MPESA_PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
-MPESA_CALLBACK_URL = "http://localhost:5000/api/payments/mpesa/callback"
+# M-PESA DARAJA API CREDENTIALS (move to config in production)
+MPESA_CONSUMER_KEY = '0MGI4OURcyORSUN0BjmvzDW77r6dGyjRYcZdRYdbHLC20Xjl'
+MPESA_CONSUMER_SECRET = '4UVbzIvUBoV5HxNFHDs3ZCSwsVuSFSDXRsWbSyiOEqB9NYtYZu60MZnpRC56rlZ8'
 
+# SHORTCODE / PASSKEY
+MPESA_SHORTCODE = '174379'
+MPESA_PASSKEY = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
 
-def get_mpesa_access_token():
-    """Get M-Pesa OAuth access token"""
-    try:
-        # Encode consumer key and secret
-        credentials = f"{MPESA_CONSUMER_KEY}:{MPESA_CONSUMER_SECRET}"
-        encoded_credentials = base64.b64encode(credentials.encode()).decode()
-
-        headers = {"Authorization": f"Basic {encoded_credentials}"}
-
-        response = requests.get(
-            "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
-            headers=headers,
-        )
-
-        if response.status_code == 200:
-            token = response.json()["access_token"]
-            print(f"🔑 M-Pesa Access Token: {token}")
-            return token
-        else:
-            print(f"❌ M-Pesa token error: {response.status_code} - {response.text}")
-            return None
-    except Exception as e:
-        print(f"❌ M-Pesa token exception: {str(e)}")
-        return None
+# CALLBACK URL — must be publicly reachable (ngrok used here)
+MPESA_CALLBACK_URL = "https://coral-salamanderlike-ilona.ngrok-free.dev/api/payments/mpesa/callback"
 
 
 def generate_mpesa_password():
-    """Generate M-Pesa API password"""
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    """Generate M-Pesa API password."""
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     data_to_encode = MPESA_SHORTCODE + MPESA_PASSKEY + timestamp
     password = base64.b64encode(data_to_encode.encode()).decode()
     return password, timestamp
 
 
-@payments_bp.route("/payments/mpesa/stk-push", methods=["POST"])
+@payments_bp.route('/payments/mpesa/stk-push', methods=['POST'])
 @jwt_required()
 def initiate_mpesa_payment():
-    """Initiate M-Pesa STK Push payment"""
+    """Initiate M-Pesa STK Push payment."""
     try:
         current_user_id = get_jwt_identity()
-        data = request.get_json()
+        data = request.get_json() or {}
 
-        order_id = data.get("order_id")
-        phone_number = data.get("phone_number")
+        order_id = data.get('order_id')
+        phone_number = data.get('phone_number')
 
         if not order_id or not phone_number:
-            return jsonify({"message": "Order ID and phone number are required"}), 400
+            return jsonify({'message': 'Order ID and phone number are required'}), 400
 
-        # Get order
         order = Order.query.get_or_404(order_id)
-
-        # Verify user owns the order
         if order.user_id != current_user_id:
-            return jsonify({"message": "Not authorized"}), 403
+            return jsonify({'message': 'Not authorized'}), 403
 
-        # Format phone number (2547...)
-        if phone_number.startswith("0"):
-            phone_number = "254" + phone_number[1:]
-        elif phone_number.startswith("+"):
+        # Format phone number to 254...
+        if phone_number.startswith('0'):
+            phone_number = '254' + phone_number[1:]
+        elif phone_number.startswith('+'):
             phone_number = phone_number[1:]
-        elif not phone_number.startswith("254"):
-            phone_number = "254" + phone_number
+        elif not phone_number.startswith('254'):
+            phone_number = '254' + phone_number
 
-        print(f"📱 Processing payment for phone: {phone_number}")
-        print(f"💰 Order amount: ${order.total_amount}")
-
-        # Get access token
-        access_token = get_mpesa_access_token()
+        # Get access token (cached in app.utils.get_mpesa_token)
+        access_token = get_mpesa_token()
         if not access_token:
-            return jsonify({"message": "Failed to get M-Pesa access token"}), 500
+            return jsonify({'message': 'Failed to get M-Pesa access token'}), 503
 
-        # Generate password
         password, timestamp = generate_mpesa_password()
+        amount = int(order.total_amount) if order.total_amount else 1
 
-        # STK Push request
         stk_push_data = {
             "BusinessShortCode": MPESA_SHORTCODE,
             "Password": password,
             "Timestamp": timestamp,
             "TransactionType": "CustomerPayBillOnline",
-            "Amount": 1,  # Use 1 KES for testing in sandbox
+            "Amount": amount,
             "PartyA": phone_number,
             "PartyB": MPESA_SHORTCODE,
             "PhoneNumber": phone_number,
             "CallBackURL": MPESA_CALLBACK_URL,
             "AccountReference": f"Farmart{order.id}",
-            "TransactionDesc": f"Payment for Order #{order.id}",
+            "TransactionDesc": f"Payment for Order #{order.id}"
         }
 
         headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
         }
-
-        print("🚀 Sending STK Push to M-Pesa Sandbox...")
-
-        print(f"📦 Request data: {json.dumps(stk_push_data, indent=2)}")
 
         response = requests.post(
-            "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+            'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
             json=stk_push_data,
             headers=headers,
-            timeout=30,
+            timeout=30
         )
 
-        print(f"📡 M-Pesa Response Status: {response.status_code}")
-        print(f"📡 M-Pesa Response: {response.text}")
-
+        # If Safaricom accepted the request (not yet payment completed)
         if response.status_code == 200:
-            response_data = response.json()
+            try:
+                response_data = response.json()
+            except ValueError:
+                return jsonify({'message': 'Invalid response from M-Pesa'}), 502
 
-            if response_data.get("ResponseCode") == "0":
-                # Update order with payment reference
-                order.payment_intent_id = response_data.get("CheckoutRequestID")
-                order.payment_status = "pending"
+            if response_data.get('ResponseCode') == '0':
+                order.payment_intent_id = response_data.get('CheckoutRequestID')
+                order.payment_status = 'pending'
                 db.session.commit()
-
-                return jsonify(
-                    {
-                        "message": "Payment initiated successfully! Check your phone for STK Push.",
-                        "checkout_request_id": response_data.get("CheckoutRequestID"),
-                        "customer_message": response_data.get("CustomerMessage"),
-                    }
-                )
+                return jsonify({
+                    'message': 'Payment initiated successfully',
+                    'checkout_request_id': response_data.get('CheckoutRequestID'),
+                    'customer_message': response_data.get('CustomerMessage')
+                }), 200
             else:
-                error_msg = response_data.get(
-                    "ResponseDescription", "Payment initiation failed"
-                )
-                print(f"❌ M-Pesa Error: {error_msg}")
-                return (
-                    jsonify(
-                        {"message": "Payment initiation failed", "error": error_msg}
-                    ),
-                    400,
-                )
-        else:
-            print(f"❌ HTTP Error: {response.status_code} - {response.text}")
-            return (
-                jsonify(
-                    {"message": "M-Pesa service unavailable", "error": response.text}
-                ),
-                500,
-            )
+                # M-Pesa returned an error response (e.g., invalid details)
+                return jsonify({
+                    'message': 'Payment initiation failed',
+                    'error': response_data.get('ResponseDescription', response.text)
+                }), 400
 
+        # handle specific status codes
+        if response.status_code == 429:
+            retry_after = response.headers.get('Retry-After')
+            body = response.text
+            return jsonify({
+                'message': 'Rate limited by M-Pesa API',
+                'retry_after': retry_after,
+                'details': body
+            }), 429
+
+        return jsonify({
+            'message': 'Failed to connect to M-Pesa API',
+            'status_code': response.status_code,
+            'error': response.text
+        }), 502
+
+    except requests.Timeout:
+        return jsonify({'message': 'M-Pesa request timed out'}), 504
+    except requests.ConnectionError:
+        return jsonify({'message': 'Connection error to M-Pesa API'}), 502
     except Exception as e:
-        print(f"❌ Payment error: {str(e)}")
-        return jsonify({"message": "Payment failed", "error": str(e)}), 500
+        # log exception server-side; return a safe message
+        print("initiate_mpesa_payment error:", str(e))
+        return jsonify({'message': 'Payment initiation failed', 'error': str(e)}), 500
 
 
-@payments_bp.route("/payments/mpesa/callback", methods=["POST"])
+@payments_bp.route('/payments/mpesa/callback', methods=['POST'])
 def mpesa_callback():
-    """Handle M-Pesa payment callback"""
+    """Handle M-Pesa callback."""
     try:
-        callback_data = request.get_json()
-        print("📞 M-Pesa Callback Received:", json.dumps(callback_data, indent=2))
+        callback_data = request.get_json() or {}
+        print("Callback received:", json.dumps(callback_data, indent=2))
 
-        # Extract callback data
-        result_code = (
-            callback_data.get("Body", {}).get("stkCallback", {}).get("ResultCode")
-        )
-        checkout_request_id = (
-            callback_data.get("Body", {})
-            .get("stkCallback", {})
-            .get("CheckoutRequestID")
-        )
-        result_desc = (
-            callback_data.get("Body", {}).get("stkCallback", {}).get("ResultDesc")
-        )
+        stk = callback_data.get('Body', {}).get('stkCallback', {})
+        result_code = stk.get('ResultCode')
+        checkout_request_id = stk.get('CheckoutRequestID')
+        result_desc = stk.get('ResultDesc')
 
-        print(f"🔍 Callback ResultCode: {result_code}")
-        print(f"🔍 Callback CheckoutRequestID: {checkout_request_id}")
+        order = None
+        if checkout_request_id:
+            order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
 
         if result_code == 0:
-            # Payment successful
-            print(f"✅ Payment successful for CheckoutRequestID: {checkout_request_id}")
-            # Find order and update status
-            order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
+            # successful
             if order:
-                order.payment_status = "completed"
+                order.payment_status = 'completed'
                 order.status = OrderStatus.CONFIRMED
                 db.session.commit()
-                print(f"✅ Updated order #{order.id} payment status to completed")
         else:
-            # Payment failed
-            print(f"❌ Payment failed for CheckoutRequestID: {checkout_request_id}")
-            print(f"❌ Error: {result_desc}")
-            order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
+            # failed / cancelled
             if order:
-                order.payment_status = "failed"
+                order.payment_status = 'failed'
                 db.session.commit()
-                print(f"❌ Updated order #{order.id} payment status to failed")
+            # optional: persist callback payload for audit
+            print(f"Payment failed/cancelled: {checkout_request_id} - {result_desc}")
 
-        return jsonify({"ResultCode": 0, "ResultDesc": "Success"})
+        return jsonify({'ResultCode': 0, 'ResultDesc': 'Success'}), 200
 
     except Exception as e:
-        print(f"❌ Callback error: {str(e)}")
-        return jsonify({"ResultCode": 1, "ResultDesc": "Failed"})
+        print("mpesa_callback error:", str(e))
+        return jsonify({'ResultCode': 1, 'ResultDesc': 'Failed'}), 500
 
 
-@payments_bp.route(
-    "/payments/check-payment/<string:checkout_request_id>", methods=["GET"]
-)
+@payments_bp.route('/payments/check-payment/<string:checkout_request_id>', methods=['GET'])
 @jwt_required()
 def check_payment_status(checkout_request_id):
-    """Check payment status"""
+    """Check M-Pesa payment status with defensive handling and DB-first lookup."""
     try:
-        access_token = get_mpesa_access_token()
+        # 1) If we already recorded payment status in DB, return it — avoids hitting Safaricom repeatedly.
+        order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
+        if order and order.payment_status in ('completed', 'failed'):
+            return jsonify({
+                'checkout_request_id': checkout_request_id,
+                'payment_status': order.payment_status,
+                'order_id': order.id,
+                'message': 'Status retrieved from server records'
+            }), 200
+
+        # 2) If not in DB (or pending), query Safaricom — but be defensive about rate limits.
+        access_token = get_mpesa_token()
         if not access_token:
-            return jsonify({"message": "Service unavailable"}), 500
+            return jsonify({'message': 'Failed to get access token'}), 503
 
         headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
         }
 
         password, timestamp = generate_mpesa_password()
-
         query_data = {
             "BusinessShortCode": MPESA_SHORTCODE,
             "Password": password,
             "Timestamp": timestamp,
-            "CheckoutRequestID": checkout_request_id,
+            "CheckoutRequestID": checkout_request_id
         }
 
         response = requests.post(
-            "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query",
+            'https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query',
             json=query_data,
             headers=headers,
+            timeout=30
         )
 
-        if response.status_code == 200:
-            return jsonify(response.json())
-        else:
-            return jsonify({"message": "Failed to check status"}), 500
+        # Handle rate limiting explicitly
+        if response.status_code == 429:
+            retry_after = response.headers.get('Retry-After')
+            return jsonify({
+                'message': 'Rate limited by M-Pesa API',
+                'retry_after': retry_after
+            }), 429
 
+        if response.status_code != 200:
+            return jsonify({
+                'message': 'Failed to check payment status',
+                'status_code': response.status_code,
+                'error': response.text
+            }), 502
+
+        try:
+            resp_json = response.json()
+        except ValueError:
+            return jsonify({'message': 'Invalid JSON response from M-Pesa'}), 502
+
+        # If Safaricom returns a result, update DB if possible
+        result_code = resp_json.get('ResultCode') or resp_json.get('resultCode') \
+                      or resp_json.get('ResponseCode')  # try various keys
+
+        # Save whatever we can into DB if there is an order
+        if order:
+            # Map result_code to internal state
+            if str(result_code) in ('0', '0'):  # success
+                order.payment_status = 'completed'
+                order.status = OrderStatus.CONFIRMED
+                db.session.commit()
+            elif result_code is not None:
+                # non-zero result => failed/cancelled
+                order.payment_status = 'failed'
+                db.session.commit()
+
+        return jsonify({
+            'checkout_request_id': checkout_request_id,
+            'm_pesa_response': resp_json
+        }), 200
+
+    except requests.Timeout:
+        return jsonify({'message': 'Status check request timed out'}), 504
+    except requests.ConnectionError:
+        return jsonify({'message': 'Connection error while checking payment'}), 502
     except Exception as e:
-        return jsonify({"message": "Status check failed", "error": str(e)}), 500
+        print("check_payment_status error:", str(e))
+        return jsonify({'message': 'Status check failed', 'error': str(e)}), 500

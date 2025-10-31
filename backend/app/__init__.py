@@ -9,34 +9,34 @@ from flask_bcrypt import Bcrypt
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
-cors = CORS()
 bcrypt = Bcrypt()
 
 def create_app(config_name='default'):
+    """Application factory function"""
     app = Flask(__name__)
 
-    # Import config
+    # ✅ Load configuration
     from config import config
     app.config.from_object(config[config_name])
 
-    # SIMPLE CORS FIX - Allow all for development
-    CORS(app)
+    # ✅ Enable CORS (allow all origins in development)
+    CORS(app, supports_credentials=True)
 
-    # Initialize extensions with app
+    # ✅ Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     bcrypt.init_app(app)
 
-    # Import models
+    # ✅ Import models here to avoid circular imports
     from app import models
 
-    # Register blueprints
+    # ✅ Register blueprints (ensure all routes are connected)
     from app.auth import auth_bp
     from app.animals import animals_bp
     from app.orders import orders_bp
     from app.cart import cart_bp
-    from app.payments import payments_bp
+    from app.payments import payments_bp  # <-- M-Pesa integration route
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(animals_bp, url_prefix='/api')
@@ -44,4 +44,5 @@ def create_app(config_name='default'):
     app.register_blueprint(cart_bp, url_prefix='/api')
     app.register_blueprint(payments_bp, url_prefix='/api')
 
+    print("✅ Flask app created successfully with blueprints registered.")
     return app
