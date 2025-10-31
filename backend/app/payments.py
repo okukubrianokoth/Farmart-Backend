@@ -93,6 +93,7 @@ def initiate_mpesa_payment():
             timeout=30
         )
 
+        # If Safaricom accepted the request (not yet payment completed)
         if response.status_code == 200:
             try:
                 response_data = response.json()
@@ -109,17 +110,20 @@ def initiate_mpesa_payment():
                     'customer_message': response_data.get('CustomerMessage')
                 }), 200
             else:
+                # M-Pesa returned an error response (e.g., invalid details)
                 return jsonify({
                     'message': 'Payment initiation failed',
                     'error': response_data.get('ResponseDescription', response.text)
                 }), 400
 
+        # handle specific status codes
         if response.status_code == 429:
             retry_after = response.headers.get('Retry-After')
+            body = response.text
             return jsonify({
                 'message': 'Rate limited by M-Pesa API',
                 'retry_after': retry_after,
-                'details': response.text
+                'details': body
             }), 429
 
         return jsonify({
@@ -133,6 +137,7 @@ def initiate_mpesa_payment():
     except requests.ConnectionError:
         return jsonify({'message': 'Connection error to M-Pesa API'}), 502
     except Exception as e:
+        # log exception server-side; return a safe message
         print("initiate_mpesa_payment error:", str(e))
         return jsonify({'message': 'Payment initiation failed', 'error': str(e)}), 500
 
@@ -154,14 +159,17 @@ def mpesa_callback():
             order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
 
         if result_code == 0:
+            # successful
             if order:
                 order.payment_status = 'completed'
                 order.status = OrderStatus.CONFIRMED
                 db.session.commit()
         else:
+            # failed / cancelled
             if order:
                 order.payment_status = 'failed'
                 db.session.commit()
+            # optional: persist callback payload for audit
             print(f"Payment failed/cancelled: {checkout_request_id} - {result_desc}")
 
         return jsonify({'ResultCode': 0, 'ResultDesc': 'Success'}), 200
@@ -176,6 +184,7 @@ def mpesa_callback():
 def check_payment_status(checkout_request_id):
     """Check M-Pesa payment status with defensive handling and DB-first lookup."""
     try:
+        # 1) If we already recorded payment status in DB, return it — avoids hitting Safaricom repeatedly.
         order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
         if order and order.payment_status in ('completed', 'failed'):
             return jsonify({
@@ -185,6 +194,7 @@ def check_payment_status(checkout_request_id):
                 'message': 'Status retrieved from server records'
             }), 200
 
+        # 2) If not in DB (or pending), query Safaricom — but be defensive about rate limits.
         access_token = get_mpesa_token()
         if not access_token:
             return jsonify({'message': 'Failed to get access token'}), 503
@@ -209,6 +219,7 @@ def check_payment_status(checkout_request_id):
             timeout=30
         )
 
+        # Handle rate limiting explicitly
         if response.status_code == 429:
             retry_after = response.headers.get('Retry-After')
             return jsonify({
@@ -228,18 +239,22 @@ def check_payment_status(checkout_request_id):
         except ValueError:
             return jsonify({'message': 'Invalid JSON response from M-Pesa'}), 502
 
+        # If Safaricom returns a result, update DB if possible
         result_code = (
-            resp_json.get('ResultCode') or
-            resp_json.get('resultCode') or
-            resp_json.get('ResponseCode')
+            resp_json.get('ResultCode')
+            or resp_json.get('resultCode')
+            or resp_json.get('ResponseCode')  # try various keys
         )
 
+        # Save whatever we can into DB if there is an order
         if order:
-            if str(result_code) == '0':
+            # Map result_code to internal state
+            if str(result_code) in ('0', '0'):  # success
                 order.payment_status = 'completed'
                 order.status = OrderStatus.CONFIRMED
                 db.session.commit()
             elif result_code is not None:
+                # non-zero result => failed/cancelled
                 order.payment_status = 'failed'
                 db.session.commit()
 
