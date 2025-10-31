@@ -135,7 +135,6 @@ def initiate_mpesa_payment():
     except requests.ConnectionError:
         return jsonify({'message': 'Connection error to M-Pesa API'}), 502
     except Exception as e:
-        # log exception server-side; return a safe message
         print("initiate_mpesa_payment error:", str(e))
         return jsonify({'message': 'Payment initiation failed', 'error': str(e)}), 500
 
@@ -167,7 +166,6 @@ def mpesa_callback():
             if order:
                 order.payment_status = 'failed'
                 db.session.commit()
-            # optional: persist callback payload for audit
             print(f"Payment failed/cancelled: {checkout_request_id} - {result_desc}")
 
         return jsonify({'ResultCode': 0, 'ResultDesc': 'Success'}), 200
@@ -182,7 +180,7 @@ def mpesa_callback():
 def check_payment_status(checkout_request_id):
     """Check M-Pesa payment status with defensive handling and DB-first lookup."""
     try:
-        # 1) If we already recorded payment status in DB, return it — avoids hitting Safaricom repeatedly.
+        # 1) If we already recorded payment status in DB, return it
         order = Order.query.filter_by(payment_intent_id=checkout_request_id).first()
         if order and order.payment_status in ('completed', 'failed'):
             return jsonify({
@@ -192,7 +190,7 @@ def check_payment_status(checkout_request_id):
                 'message': 'Status retrieved from server records'
             }), 200
 
-        # 2) If not in DB (or pending), query Safaricom — but be defensive about rate limits.
+        # 2) If not in DB (or pending), query Safaricom
         access_token = get_mpesa_token()
         if not access_token:
             return jsonify({'message': 'Failed to get access token'}), 503
@@ -217,7 +215,6 @@ def check_payment_status(checkout_request_id):
             timeout=30
         )
 
-        # Handle rate limiting explicitly
         if response.status_code == 429:
             retry_after = response.headers.get('Retry-After')
             return jsonify({
@@ -237,20 +234,17 @@ def check_payment_status(checkout_request_id):
         except ValueError:
             return jsonify({'message': 'Invalid JSON response from M-Pesa'}), 502
 
-        # If Safaricom returns a result, update DB if possible
-        result_code = (resp_json.get('ResultCode') or
-                       resp_json.get('resultCode') or
-                       resp_json.get('ResponseCode'))
+        # Fix W504: operator at start of line
+        result_code = (resp_json.get('ResultCode')
+                       or resp_json.get('resultCode')
+                       or resp_json.get('ResponseCode'))
 
-        # Save whatever we can into DB if there is an order
         if order:
-            # Map result_code to internal state
-            if str(result_code) == '0':  # success
+            if str(result_code) in ('0', '0'):
                 order.payment_status = 'completed'
                 order.status = OrderStatus.CONFIRMED
                 db.session.commit()
             elif result_code is not None:
-                # non-zero result => failed/cancelled
                 order.payment_status = 'failed'
                 db.session.commit()
 
