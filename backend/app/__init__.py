@@ -1,9 +1,9 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_jwt_extended import JWTManager
-from flask_cors import CORS
 from flask_bcrypt import Bcrypt
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -12,11 +12,13 @@ jwt = JWTManager()
 cors = CORS()
 bcrypt = Bcrypt()
 
-def create_app(config_name='default'):
+
+def create_app(config_name="default"):
     app = Flask(__name__)
 
     # Import config
     from config import config
+
     app.config.from_object(config[config_name])
 
     # SIMPLE CORS FIX - Allow all for development
@@ -30,18 +32,17 @@ def create_app(config_name='default'):
 
     # Import models
     from app import models
-
+    from app.animals import animals_bp
     # Register blueprints
     from app.auth import auth_bp
-    from app.animals import animals_bp
-    from app.orders import orders_bp
     from app.cart import cart_bp
+    from app.orders import orders_bp
     from app.payments import payments_bp
 
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(animals_bp, url_prefix='/api')
-    app.register_blueprint(orders_bp, url_prefix='/api')
-    app.register_blueprint(cart_bp, url_prefix='/api')
-    app.register_blueprint(payments_bp, url_prefix='/api')
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(animals_bp, url_prefix="/api")
+    app.register_blueprint(orders_bp, url_prefix="/api")
+    app.register_blueprint(cart_bp, url_prefix="/api")
+    app.register_blueprint(payments_bp, url_prefix="/api")
 
     return app

@@ -1,10 +1,11 @@
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
-from datetime import datetime
 import enum
+from datetime import datetime
+
+from flask_bcrypt import Bcrypt
+from flask_sqlalchemy import SQLAlchemy
 
 # Import the db instance from the app package
-from app import db, bcrypt
+from app import bcrypt, db
 
 
 class UserType(enum.Enum):
