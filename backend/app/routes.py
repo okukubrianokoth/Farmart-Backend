@@ -1,7 +1,6 @@
-from flask import Blueprint
+from app import app
 
-main = Blueprint('main', __name__)
 
-@main.route('/ping')
-def ping():
-    return {"message": "pong"}
+@app.route("/")
+def home():
+    return "Hello, Farmart Backend!"
