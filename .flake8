@@ -1,8 +1,6 @@
 [flake8]
 max-line-length = 88
-extend-ignore = 
-    W503,  # line break before binary operator (allowed in PEP8)
-    E203   # whitespace before ':' (Black-compatible)
+extend-ignore = W503, E203
 exclude =
     venv,
     migrations,
