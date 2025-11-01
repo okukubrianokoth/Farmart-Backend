@@ -1,5 +1,12 @@
-
 [flake8]
-ignore = E302, F401, W293, W291, W292, E128, E402
-max-line-length = 120
-exclude = .git,__pycache__,env,venv,migrations
+max-line-length = 88
+extend-ignore = 
+    W503,  # line break before binary operator (allowed in PEP8)
+    E203   # whitespace before ':' (Black-compatible)
+exclude =
+    venv,
+    migrations,
+    __pycache__,
+    .git,
+    .github,
+    .pytest_cache
