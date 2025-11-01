@@ -1,17 +1,13 @@
 import enum
 from datetime import datetime
-
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
-
 # Import the db instance from the app package
 from app import bcrypt, db
-
 
 class UserType(enum.Enum):
     FARMER = "farmer"
     USER = "user"
-
 
 class User(db.Model):
     __tablename__ = "users"
@@ -63,14 +59,12 @@ class User(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
-
 class AnimalType(enum.Enum):
     CATTLE = "cattle"
     POULTRY = "poultry"
     SWINE = "swine"
     SHEEP = "sheep"
     GOAT = "goat"
-
 
 class Animal(db.Model):
     __tablename__ = "animals"
@@ -115,35 +109,29 @@ class Animal(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
-
 class OrderStatus(enum.Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     REJECTED = "rejected"
     COMPLETED = "completed"
 
-
-# FIXED: Single Order class definition with all fields
 class Order(db.Model):
     __tablename__ = "orders"
-    __table_args__ = {"extend_existing": True}  # Prevents table redefinition errors
+    __table_args__ = {"extend_existing": True}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(
-        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
-    )
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.Enum(OrderStatus), default=OrderStatus.PENDING, index=True)
-    payment_intent_id = db.Column(db.String(100))  # M-Pesa CheckoutRequestID
-    payment_status = db.Column(
-        db.String(20), default="pending"
-    )  # pending, completed, failed
+
+    # ✅ Renamed to match payments.py
+    checkout_request_id = db.Column(db.String(100), unique=True, nullable=True)
+
+    payment_status = db.Column(db.String(20), default="pending")
     shipping_address = db.Column(db.Text)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     order_items = db.relationship(
         "OrderItem", backref="order", lazy=True, cascade="all, delete-orphan"
@@ -155,7 +143,7 @@ class Order(db.Model):
             "total_amount": self.total_amount,
             "status": self.status.value,
             "payment_status": self.payment_status,
-            "payment_intent_id": self.payment_intent_id,
+            "checkout_request_id": self.checkout_request_id,  # updated key
             "shipping_address": self.shipping_address,
             "notes": self.notes,
             "user": self.user.to_dict(),
@@ -163,7 +151,6 @@ class Order(db.Model):
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
-
 
 class OrderItem(db.Model):
     __tablename__ = "order_items"
@@ -188,7 +175,6 @@ class OrderItem(db.Model):
             "subtotal": self.price * self.quantity,
         }
 
-
 class CartItem(db.Model):
     __tablename__ = "cart_items"
     __table_args__ = {"extend_existing": True}  # Prevents table redefinition errors
@@ -211,3 +197,15 @@ class CartItem(db.Model):
             "added_at": self.added_at.isoformat(),
             "subtotal": self.animal.price * self.quantity,
         }
+
+class PaymentLog(db.Model):
+    __tablename__ = "payment_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=True)
+    event_type = db.Column(db.String(50))  # e.g. 'INITIATE', 'CALLBACK', 'CHECK'
+    payload = db.Column(db.JSON)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<PaymentLog {self.event_type} for Order {self.order_id}>"

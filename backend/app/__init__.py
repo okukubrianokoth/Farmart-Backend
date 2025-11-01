@@ -43,7 +43,7 @@ def create_app(config_name="default"):
     app.register_blueprint(animals_bp, url_prefix="/api")
     app.register_blueprint(orders_bp, url_prefix="/api")
     app.register_blueprint(cart_bp, url_prefix="/api")
-    app.register_blueprint(payments_bp, url_prefix="/api")
+    app.register_blueprint(payments_bp, url_prefix="/api/payments")
 
     print("✅ Flask app created successfully with blueprints registered.")
     return app
