@@ -335,6 +335,8 @@ def initiate_payment():
         data = request.get_json()
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
 
         order_id = data.get("order_id")
         phone_number = data.get("phone_number")
