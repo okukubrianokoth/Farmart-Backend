@@ -1,24 +1,14 @@
-# from app import create_app
-
-# app = create_app('default')
-
-# if __name__ == '__main__':
-#     print("🚀 Starting Farmart backend server...")
-#     print("📝 API available at: http://localhost:5000/api")
-#     print("🔑 Sample accounts:")
-#     print("   Farmer: farmer@example.com / password123")
-#     print("   User: user@example.com / password123")
-#     app.run(debug=True, host='0.0.0.0', port=5000)
-from dotenv import load_dotenv
-load_dotenv()  # Loads .env into environment variables
-
-from app import create_app, db
-from flask_migrate import upgrade
 import os
+from dotenv import load_dotenv
+from flask_migrate import upgrade
+from app import create_app, db
+
+# ✅ Load environment variables early
+load_dotenv()
 
 app = create_app()
 
-# ✅ Ensure DB is migrated automatically on Render startup
+# ✅ Apply pending migrations automatically on startup
 with app.app_context():
     try:
         upgrade()
