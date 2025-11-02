@@ -9,6 +9,9 @@
 #     print("   Farmer: farmer@example.com / password123")
 #     print("   User: user@example.com / password123")
 #     app.run(debug=True, host='0.0.0.0', port=5000)
+from dotenv import load_dotenv
+load_dotenv()  # Loads .env into environment variables
+
 from app import create_app, db
 from flask_migrate import upgrade
 import os

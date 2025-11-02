@@ -47,6 +47,9 @@
 
 #     print("✅ Flask app created successfully with blueprints registered.")
 #     return app
+from dotenv import load_dotenv
+load_dotenv()  # Loads .env into environment variables
+
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
