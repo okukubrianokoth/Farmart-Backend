@@ -1,8 +1,8 @@
-"""empty message
+"""Initial migration with checkout_request_id field
 
-Revision ID: 554cd66ef274
+Revision ID: d69ddcb00c1e
 Revises: 
-Create Date: 2025-10-30 20:28:36.363837
+Create Date: 2025-11-01 14:05:37.830518
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '554cd66ef274'
+revision = 'd69ddcb00c1e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -63,14 +63,15 @@ def upgrade():
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('total_amount', sa.Float(), nullable=False),
     sa.Column('status', sa.Enum('PENDING', 'CONFIRMED', 'REJECTED', 'COMPLETED', name='orderstatus'), nullable=True),
-    sa.Column('payment_intent_id', sa.String(length=100), nullable=True),
+    sa.Column('checkout_request_id', sa.String(length=100), nullable=True),
     sa.Column('payment_status', sa.String(length=20), nullable=True),
     sa.Column('shipping_address', sa.Text(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('checkout_request_id')
     )
     with op.batch_alter_table('orders', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_orders_status'), ['status'], unique=False)

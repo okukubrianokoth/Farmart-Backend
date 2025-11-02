@@ -17,3 +17,6 @@ venv/
 # IDEs
 .vscode/
 .idea/
+
+# Environment variables
+backend/.env
