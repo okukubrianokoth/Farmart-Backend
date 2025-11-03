@@ -19,19 +19,19 @@ MPESA_BASE_URL = os.getenv("MPESA_BASE_URL", "https://sandbox.safaricom.co.ke")
 
 # Auto-detect callback URL from NGROK_URL if set
 NGROK_URL = os.getenv("NGROK_URL")
-MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL") or f"{NGROK_URL}/api/payments/mpesa-callback"
+MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL") or "{}/api/payments/mpesa-callback".format(NGROK_URL)
 
 # --- Helper Functions ---
 def get_mpesa_access_token():
     try:
-        url = f"{MPESA_BASE_URL}/oauth/v1/generate?grant_type=client_credentials"
+        url = "{}/oauth/v1/generate?grant_type=client_credentials".format(MPESA_BASE_URL)
         resp = requests.get(url, auth=(MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET))
         resp.raise_for_status()
         token = resp.json().get("access_token")
-        current_app.logger.info(f"🔑 M-Pesa Access Token obtained")
+        current_app.logger.info("🔑 M-Pesa Access Token obtained")
         return token
     except Exception as e:
-        current_app.logger.error(f"❌ Failed to get M-PESA token: {e}")
+        current_app.logger.error("❌ Failed to get M-PESA token: {}".format(e))
         return None
 
 def format_phone_number(phone):
@@ -80,33 +80,44 @@ def initiate_payment():
             "PartyB": MPESA_SHORTCODE,
             "PhoneNumber": formatted_phone,
             "CallBackURL": MPESA_CALLBACK_URL,
-            "AccountReference": f"Order{order.id}",
+            "AccountReference": "Order{}".format(order.id),
             "TransactionDesc": "Farmart Order Payment",
         }
 
-        headers = {"Authorization": f"Bearer {token}"}
-        resp = requests.post(f"{MPESA_BASE_URL}/mpesa/stkpush/v1/processrequest", json=payload, headers=headers, timeout=30)
+        headers = {"Authorization": "Bearer {}".format(token)}
+        resp = requests.post(
+            "{}/mpesa/stkpush/v1/processrequest".format(MPESA_BASE_URL),
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
         resp_data = resp.json()
 
         # Log INITIATE
-        db.session.add(PaymentLog(order_id=order.id, event_type="INITIATE", payload={"request": payload, "response": resp_data}))
+        db.session.add(
+            PaymentLog(
+                order_id=order.id,
+                event_type="INITIATE",
+                payload={"request": payload, "response": resp_data}
+            )
+        )
         db.session.commit()
 
         if resp.status_code != 200 or "errorCode" in resp_data:
-            current_app.logger.error(f"❌ STK Push failed: {json.dumps(resp_data, indent=4)}")
+            current_app.logger.error("❌ STK Push failed: {}".format(json.dumps(resp_data, indent=4)))
             return jsonify({"error": "Failed to initiate M-PESA payment", "details": resp_data}), 500
 
         order.checkout_request_id = resp_data.get("CheckoutRequestID")
         order.payment_status = "pending"
         db.session.commit()
 
-        current_app.logger.info(f"✅ STK Push initiated for Order #{order.id} ({formatted_phone})")
+        current_app.logger.info("✅ STK Push initiated for Order #{} ({})".format(order.id, formatted_phone))
         return jsonify({"message": "M-PESA STK Push initiated", "checkout_request_id": order.checkout_request_id}), 200
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        current_app.logger.error(f"🔥 Error initiate_payment: {e}")
+        current_app.logger.error("🔥 Error initiate_payment: {}".format(e))
         return jsonify({"error": "Internal Server Error"}), 500
 
 @payments_bp.route("/mpesa-callback", methods=["POST"])
@@ -122,20 +133,20 @@ def mpesa_callback():
 
         order = Order.query.filter_by(checkout_request_id=checkout_request_id).first()
         if not order:
-            current_app.logger.warning(f"⚠️ Order not found for CheckoutRequestID: {checkout_request_id}")
+            current_app.logger.warning("⚠️ Order not found for CheckoutRequestID: {}".format(checkout_request_id))
             return jsonify({"error": "Order not found"}), 404
 
         if result_code == 0:
             order.payment_status = "paid"
-            current_app.logger.info(f"✅ Payment success for Order #{order.id}")
+            current_app.logger.info("✅ Payment success for Order #{}".format(order.id))
         else:
             order.payment_status = "failed"
-            current_app.logger.warning(f"❌ Payment failed for Order #{order.id}")
+            current_app.logger.warning("❌ Payment failed for Order #{}".format(order.id))
 
         db.session.commit()
         return jsonify({"message": "Callback processed"}), 200
     except Exception as e:
-        current_app.logger.error(f"💥 Error mpesa_callback: {e}")
+        current_app.logger.error("💥 Error mpesa_callback: {}".format(e))
         return jsonify({"error": "Internal server error"}), 500
 
 @payments_bp.route("/check-payment/<checkout_request_id>", methods=["GET"])
@@ -149,10 +160,16 @@ def check_payment_status(checkout_request_id):
         if status not in ["pending", "paid", "failed"]:
             status = "pending"
 
-        db.session.add(PaymentLog(order_id=order.id, event_type="CHECK_STATUS", payload={"checkout_request_id": checkout_request_id, "status": status}))
+        db.session.add(
+            PaymentLog(
+                order_id=order.id,
+                event_type="CHECK_STATUS",
+                payload={"checkout_request_id": checkout_request_id, "status": status}
+            )
+        )
         db.session.commit()
 
         return jsonify({"order_id": order.id, "payment_status": status}), 200
     except Exception as e:
-        current_app.logger.error(f"💥 Error check_payment_status: {e}")
+        current_app.logger.error("💥 Error check_payment_status: {}".format(e))
         return jsonify({"error": "Internal server error"}), 500
