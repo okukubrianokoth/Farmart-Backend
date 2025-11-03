@@ -1,4 +1,5 @@
 import os
+import cloudinary
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -6,6 +7,7 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from app.uploads import upload_bp  # renamed to match clean upload blueprint
 
 # ✅ Load environment variables early
 load_dotenv()
@@ -36,6 +38,14 @@ def create_app(config_name="default"):
     jwt.init_app(app)
     bcrypt.init_app(app)
 
+    # ✅ Configure Cloudinary (centralized setup)
+    cloudinary.config(
+        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+        api_key=os.getenv("CLOUDINARY_API_KEY"),
+        api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+        secure=True,
+    )
+
     # ✅ Import models and blueprints
     from app import models
     from app.animals import animals_bp
@@ -50,6 +60,7 @@ def create_app(config_name="default"):
     app.register_blueprint(orders_bp, url_prefix="/api")
     app.register_blueprint(cart_bp, url_prefix="/api")
     app.register_blueprint(payments_bp, url_prefix="/api/payments")
+    app.register_blueprint(upload_bp, url_prefix="/api")  # clean upload endpoint
 
-    print("✅ Flask app created successfully with blueprints registered.")
+    print("✅ Flask app created successfully with blueprints registered and Cloudinary configured.")
     return app
